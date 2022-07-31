@@ -137,7 +137,20 @@ typedef struct hb_glyph_info_t {
  * 				   clusters.
  * 				   The #HB_GLYPH_FLAG_UNSAFE_TO_BREAK flag will
  * 				   always imply this flag.
- * 				   Since: 3.3.0
+ *				   To use this flag, you must enable the buffer flag
+ *				   @HB_BUFFER_FLAG_PRODUCE_UNSAFE_TO_CONCAT during
+ *				   shaping, otherwise the buffer flag will not be
+ *				   reliably produced.
+ * 				   Since: 4.0.0
+ * @HB_GLYPH_FLAG_SAFE_TO_INSERT_TATWEEL: In scripts that use elongation (Arabic,
+				   Mongolian, Syriac, etc.), this flag signifies
+				   that it is safe to insert a U+0640 TATWEEL
+				   character *before* this cluster for elongation.
+				   This flag does not determine the
+				   script-specific elongation places, but only
+				   when it is safe to do the elongation without
+				   interrupting text shaping.
+				   Since: 5.1.0
  * @HB_GLYPH_FLAG_DEFINED: All the currently defined flags.
  *
  * Flags for #hb_glyph_info_t.
@@ -356,7 +369,24 @@ hb_buffer_guess_segment_properties (hb_buffer_t *buffer);
  * @HB_BUFFER_FLAG_DO_NOT_INSERT_DOTTED_CIRCLE:
  *                      flag indicating that a dotted circle should
  *                      not be inserted in the rendering of incorrect
- *                      character sequences (such at <0905 093E>). Since: 2.4
+ *                      character sequences (such at <0905 093E>). Since: 2.4.0
+ * @HB_BUFFER_FLAG_VERIFY:
+ *                      flag indicating that the hb_shape() call and its variants
+ *                      should perform various verification processes on the results
+ *                      of the shaping operation on the buffer.  If the verification
+ *                      fails, then either a buffer message is sent, if a message
+ *                      handler is installed on the buffer, or a message is written
+ *                      to standard error.  In either case, the shaping result might
+ *                      be modified to show the failed output. Since: 3.4.0
+ * @HB_BUFFER_FLAG_PRODUCE_UNSAFE_TO_CONCAT:
+ *                      flag indicating that the @HB_GLYPH_FLAG_UNSAFE_TO_CONCAT
+ *                      glyph-flag should be produced by the shaper. By default
+ *                      it will not be produced since it incurs a cost. Since: 4.0.0
+ * @HB_BUFFER_FLAG_PRODUCE_SAFE_TO_INSERT_TATWEEL:
+ *                      flag indicating that the @HB_GLYPH_FLAG_SAFE_TO_INSERT_TATWEEL
+ *                      glyph-flag should be produced by the shaper. By default
+ *                      it will not be produced. Since: 5.1.0
+ * @HB_BUFFER_FLAG_DEFINED: All currently defined flags: Since: 4.4.0
  *
  * Flags for #hb_buffer_t.
  *
