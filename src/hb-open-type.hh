@@ -1242,16 +1242,6 @@ struct VarSizedBinSearchArrayOf
 template <typename COUNT>
 struct CFFIndex
 {
-  struct length_f_t
-  {
-    template <typename Iterable,
-	      hb_requires (hb_is_iterable (Iterable))>
-    unsigned operator () (const Iterable &_) const { return hb_len (hb_iter (_)); }
-
-    unsigned operator () (unsigned _) const { return _; }
-  }
-  HB_FUNCOBJ (length_f);
-
   unsigned int offset_array_size () const
   { return offSize * (count + 1); }
 
@@ -1318,7 +1308,7 @@ struct CFFIndex
       for (const auto &_ : +it)
       {
 	set_offset_at (i++, offset);
-	offset += length_f (_);
+	offset += hb_len_of (_);
       }
       set_offset_at (i, offset);
     }
@@ -1331,7 +1321,7 @@ struct CFFIndex
 	  for (const auto &_ : +it)
 	  {
 	    *p++ = offset;
-	    offset += length_f (_);
+	    offset += hb_len_of (_);
 	  }
 	  *p = offset;
 	}
@@ -1342,7 +1332,7 @@ struct CFFIndex
 	  for (const auto &_ : +it)
 	  {
 	    *p++ = offset;
-	    offset += length_f (_);
+	    offset += hb_len_of (_);
 	  }
 	  *p = offset;
 	}
@@ -1353,7 +1343,7 @@ struct CFFIndex
 	  for (const auto &_ : +it)
 	  {
 	    *p++ = offset;
-	    offset += length_f (_);
+	    offset += hb_len_of (_);
 	  }
 	  *p = offset;
 	}
@@ -1364,7 +1354,7 @@ struct CFFIndex
 	  for (const auto &_ : +it)
 	  {
 	    *p++ = offset;
-	    offset += length_f (_);
+	    offset += hb_len_of (_);
 	  }
 	  *p = offset;
 	}
@@ -1390,7 +1380,7 @@ struct CFFIndex
 
     unsigned total = 0;
     for (const auto &_ : +it)
-      total += length_f (_);
+      total += hb_len_of (_);
 
     if (data_size) *data_size = total;
 
