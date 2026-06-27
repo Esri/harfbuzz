@@ -25,6 +25,7 @@ files {
     "./src/hb-buffer-verify.cc",
     "./src/hb-buffer.cc",
     "./src/hb-common.cc",
+    "./src/hb-coretext.cc",
     "./src/hb-draw.cc",
     "./src/hb-face-builder.cc",
     "./src/hb-face.cc",
