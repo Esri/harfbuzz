@@ -28,7 +28,7 @@ jobs:
         shell: msys2 {0}
     steps:
     - name: Checkout
-      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
     - name: Setup MSYS2
       uses: msys2/setup-msys2@cf96e00c0aab3788743aaf63b64146f0d383cee9 # v2
       with:
@@ -60,14 +60,15 @@ jobs:
           -Ddirectwrite=enabled \
           -Dgdi=enabled \
           -Dgraphite=enabled \
-          -Dchafa=disabled
+          -Dchafa=disabled \
+          -Dgpu_demo=disabled
     - name: Build
       run: meson compile -Cbuild
     - name: Test
       run: meson test --print-errorlogs --suite=harfbuzz -Cbuild
     - name: Upload DLLs
       if: always()
-      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: libharfbuzz-${{ matrix.MSYS2_ARCH }}
         path: ./build/src/libharfbuzz-*.dll

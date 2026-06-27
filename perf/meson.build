@@ -26,32 +26,32 @@ foreach source : benchmarks
   ), workdir: meson.current_source_dir() / '..', timeout: 100)
 endforeach
 
-benchmarks_subset = [
-  'benchmark-subset.cc',
-]
-
-foreach source : benchmarks_subset
-  benchmark_name = source.split('.')[0]
-  benchmark(benchmark_name, executable(benchmark_name, source,
+if not get_option('gpu').disabled()
+  benchmark('benchmark-gpu', executable('benchmark-gpu', 'benchmark-gpu.cc',
     dependencies: [
-      google_benchmark_dep, libharfbuzz_dep, libharfbuzz_subset_dep
+      google_benchmark_dep, libharfbuzz_dep, libharfbuzz_gpu_dep
     ],
     cpp_args: [],
     include_directories: [incconfig, incsrc],
     install: false,
   ), workdir: meson.current_source_dir() / '..', timeout: 100)
-endforeach
+endif
 
-hb_draw_all = executable('hb-draw-all', ['hb-draw-all.c'],
-  cpp_args: cpp_args,
-  include_directories: [incconfig, incsrc],
-  link_with: [libharfbuzz],
-)
-meson.override_find_program('hb-draw-all', hb_draw_all)
+if not get_option('subset').disabled()
+  benchmarks_subset = [
+    'benchmark-subset.cc',
+  ]
 
-hb_paint_all = executable('hb-paint-all', ['hb-paint-all.c'],
-  cpp_args: cpp_args,
-  include_directories: [incconfig, incsrc],
-  link_with: [libharfbuzz],
-)
-meson.override_find_program('hb-paint-all', hb_paint_all)
+  foreach source : benchmarks_subset
+    benchmark_name = source.split('.')[0]
+    benchmark(benchmark_name, executable(benchmark_name, source,
+      dependencies: [
+        google_benchmark_dep, libharfbuzz_dep, libharfbuzz_subset_dep
+      ],
+      cpp_args: [],
+      include_directories: [incconfig, incsrc],
+      install: false,
+    ), workdir: meson.current_source_dir() / '..', timeout: 100)
+  endforeach
+endif
+
