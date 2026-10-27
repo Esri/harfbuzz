@@ -1,6 +1,6 @@
 project('harfbuzz', ['c', 'cpp'],
   meson_version: '>= 0.60.0',
-  version: '12.3.2',
+  version: '14.2.1',
   default_options: [
     'cpp_eh=none',          # Just to support msvc, we are passing -fno-exceptions also anyway
     # 'cpp_rtti=false',     # Do NOT enable, wraps inherit it and ICU needs RTTI
@@ -16,7 +16,7 @@ cairo_min_version = '>= 1.10.0'
 chafa_min_version = '>= 1.6.0'
 icu_min_version = '>= 49.0'
 graphite2_min_version = '>= 1.2.0'
-freetype_min_version = '>= 12.0.6'
+freetype_min_version = '>= 20.0.14'
 
 hb_version_arr = meson.project_version().split('.')
 hb_version_major = hb_version_arr[0].to_int()
@@ -101,6 +101,7 @@ check_funcs = [
   ['isatty', {'prefix': '#include <unistd.h>'}],
   ['uselocale', {'prefix': '#include <locale.h>'}],
   ['newlocale', {'prefix': '#include <locale.h>'}],
+  ['localeconv_l', {'prefix': '#include <locale.h>'}],
   ['sincos', {'prefix': '#define _GNU_SOURCE\n#include <math.h>'}],
   ['sincosf', {'prefix': '#define _GNU_SOURCE\n#include <math.h>'}],
 ]
@@ -158,6 +159,8 @@ if not get_option('cairo').disabled()
 endif
 
 chafa_dep = dependency('chafa', version: chafa_min_version, required: get_option('chafa'))
+png_dep = dependency('libpng', required: get_option('png'))
+zlib_dep = dependency('zlib', required: get_option('zlib'))
 
 fontations_dep_found = false
 if get_option('fontations').enabled()
@@ -217,6 +220,14 @@ if chafa_dep.found()
   conf.set('HAVE_CHAFA', 1)
 endif
 
+if png_dep.found()
+  conf.set('HAVE_PNG', 1)
+endif
+
+if zlib_dep.found()
+  conf.set('HAVE_ZLIB', 1)
+endif
+
 if fontations_dep_found
   conf.set('HAVE_FONTATIONS', 1)
 endif
@@ -248,6 +259,18 @@ endif
 
 if get_option('experimental_api')
   conf.set('HB_EXPERIMENTAL_API', 1)
+endif
+
+if not get_option('raster').disabled()
+  conf.set('HAVE_RASTER', 1)
+endif
+
+if not get_option('vector').disabled()
+  conf.set('HAVE_VECTOR', 1)
+endif
+
+if not get_option('subset').disabled()
+  conf.set('HAVE_SUBSET', 1)
 endif
 
 if freetype_dep.found()
@@ -419,7 +442,17 @@ endif
 configure_file(output: 'config.h', configuration: conf)
 
 alias_target('lib', libharfbuzz)
-alias_target('libs', libharfbuzz, libharfbuzz_subset)
+libs = [libharfbuzz]
+if not get_option('subset').disabled()
+  libs += [libharfbuzz_subset]
+endif
+if not get_option('raster').disabled()
+  libs += [libharfbuzz_raster]
+endif
+if not get_option('vector').disabled()
+  libs += [libharfbuzz_vector]
+endif
+alias_target('libs', libs)
 
 # Re glib, see https://github.com/harfbuzz/harfbuzz/issues/4153#issuecomment-2646347531
 add_test_setup('default',
@@ -445,10 +478,6 @@ build_summary = {
      'FreeType': conf.get('HAVE_FREETYPE', 0) == 1,
      'Fontations': conf.get('HAVE_FONTATIONS', 0) == 1,
     },
-  'Dependencies used for command-line utilities':
-    {'Cairo': conf.get('HAVE_CAIRO', 0) == 1,
-     'Chafa': conf.get('HAVE_CHAFA', 0) == 1,
-    },
   'Additional shapers':
     {'Graphite2': conf.get('HAVE_GRAPHITE2', 0) == 1,
      'WebAssembly (experimental)': conf.get('HAVE_WASM', 0) == 1,
@@ -460,6 +489,16 @@ build_summary = {
      'HarfRust': conf.get('HAVE_HARFRUST', 0) == 1,
      'kbts': conf.get('HAVE_KBTS', 0) == 1,
     },
+  'Additional libraries':
+    {'Subset': not get_option('subset').disabled(),
+     'Raster (experimental)': not get_option('raster').disabled(),
+     'Vector (experimental)': not get_option('vector').disabled(),
+     'GPU (experimental)': not get_option('gpu').disabled(),
+    },
+  'Dependencies used by additional libraries':
+    {'PNG': conf.get('HAVE_PNG', 0) == 1,
+     'Zlib': conf.get('HAVE_ZLIB', 0) == 1,
+    },
   'Other features':
     {'Utilities': not get_option('utilities').disabled(),
      'Documentation': conf.get('HAVE_GTK_DOC', 0) == 1,
@@ -467,6 +506,10 @@ build_summary = {
      'Cairo integration': conf.get('HAVE_CAIRO', 0) == 1,
      'Introspection': conf.get('HAVE_INTROSPECTION', 0) == 1,
      'Experimental APIs': conf.get('HB_EXPERIMENTAL_API', 0) == 1,
+    },
+  'Dependencies used by command-line utilities':
+    {'Cairo': conf.get('HAVE_CAIRO', 0) == 1,
+     'Chafa': conf.get('HAVE_CHAFA', 0) == 1,
     },
   'Testing':
     {'Tests': get_option('tests').enabled(),

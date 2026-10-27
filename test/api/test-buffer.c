@@ -180,6 +180,73 @@ test_buffer_properties (gpointer fixture_, gconstpointer user_data HB_UNUSED)
 }
 
 static void
+test_buffer_create_similar (void)
+{
+  hb_buffer_t *b;
+  hb_buffer_t *similar;
+  hb_unicode_funcs_t *ufuncs;
+
+  b = hb_buffer_create ();
+  ufuncs = hb_unicode_funcs_create (NULL);
+  hb_buffer_set_unicode_funcs (b, ufuncs);
+  hb_unicode_funcs_destroy (ufuncs);
+
+  hb_buffer_set_flags (b, HB_BUFFER_FLAG_BOT | HB_BUFFER_FLAG_EOT);
+  hb_buffer_set_cluster_level (b, HB_BUFFER_CLUSTER_LEVEL_CHARACTERS);
+  hb_buffer_set_replacement_codepoint (b, 0x25CCu);
+  hb_buffer_set_invisible_glyph (b, 3);
+  hb_buffer_set_not_found_glyph (b, 4);
+  hb_buffer_set_not_found_variation_selector_glyph (b, 5);
+  hb_buffer_set_random_state (b, 23);
+  hb_buffer_add_utf8 (b, "abc", -1, 0, -1);
+
+  similar = hb_buffer_create_similar (b);
+
+  g_assert_true (similar != b);
+  g_assert_cmpint (hb_buffer_get_length (similar), ==, 0);
+  g_assert_true (hb_buffer_get_content_type (similar) == HB_BUFFER_CONTENT_TYPE_INVALID);
+
+  g_assert_true (hb_buffer_get_unicode_funcs (similar) == ufuncs);
+  g_assert_true (hb_buffer_get_flags (similar) == (HB_BUFFER_FLAG_BOT | HB_BUFFER_FLAG_EOT));
+  g_assert_true (hb_buffer_get_cluster_level (similar) == HB_BUFFER_CLUSTER_LEVEL_CHARACTERS);
+  g_assert_cmphex (hb_buffer_get_replacement_codepoint (similar), ==, 0x25CCu);
+  g_assert_cmphex (hb_buffer_get_invisible_glyph (similar), ==, 3);
+  g_assert_cmphex (hb_buffer_get_not_found_glyph (similar), ==, 4);
+  g_assert_cmphex (hb_buffer_get_not_found_variation_selector_glyph (similar), ==, 5);
+  g_assert_cmpint (hb_buffer_get_random_state (similar), ==, 1);
+
+  hb_buffer_clear_contents (b);
+
+  g_assert_cmpint (hb_buffer_get_length (b), ==, 0);
+  g_assert_true (hb_buffer_get_content_type (b) == HB_BUFFER_CONTENT_TYPE_INVALID);
+  g_assert_true (hb_buffer_get_unicode_funcs (b) == ufuncs);
+  g_assert_true (hb_buffer_get_flags (b) == (HB_BUFFER_FLAG_BOT | HB_BUFFER_FLAG_EOT));
+  g_assert_true (hb_buffer_get_cluster_level (b) == HB_BUFFER_CLUSTER_LEVEL_CHARACTERS);
+  g_assert_cmphex (hb_buffer_get_replacement_codepoint (b), ==, 0x25CCu);
+  g_assert_cmphex (hb_buffer_get_invisible_glyph (b), ==, 3);
+  g_assert_cmphex (hb_buffer_get_not_found_glyph (b), ==, 4);
+  g_assert_cmphex (hb_buffer_get_not_found_variation_selector_glyph (b), ==, 5);
+  g_assert_cmpint (hb_buffer_get_random_state (b), ==, 1);
+
+  hb_buffer_set_random_state (b, 23);
+  hb_buffer_reset (b);
+
+  g_assert_cmpint (hb_buffer_get_length (b), ==, 0);
+  g_assert_true (hb_buffer_get_content_type (b) == HB_BUFFER_CONTENT_TYPE_INVALID);
+  g_assert_true (hb_buffer_get_unicode_funcs (b) == hb_unicode_funcs_get_default ());
+  g_assert_true (hb_buffer_get_flags (b) == HB_BUFFER_FLAG_DEFAULT);
+  g_assert_true (hb_buffer_get_cluster_level (b) == HB_BUFFER_CLUSTER_LEVEL_DEFAULT);
+  g_assert_cmphex (hb_buffer_get_replacement_codepoint (b), ==, HB_BUFFER_REPLACEMENT_CODEPOINT_DEFAULT);
+  g_assert_cmphex (hb_buffer_get_invisible_glyph (b), ==, 0);
+  g_assert_cmphex (hb_buffer_get_not_found_glyph (b), ==, 0);
+  g_assert_cmphex (hb_buffer_get_not_found_variation_selector_glyph (b), ==, HB_CODEPOINT_INVALID);
+  g_assert_cmpint (hb_buffer_get_random_state (b), ==, 1);
+
+  hb_buffer_destroy (similar);
+  hb_buffer_destroy (b);
+}
+
+static void
 test_buffer_contents (gpointer fixture_, gconstpointer user_data)
 {
   fixture_t *fixture = fixture_;
@@ -946,6 +1013,63 @@ test_buffer_serialize_deserialize (void)
 
 }
 
+static void
+test_buffer_serialize_no_advances (void)
+{
+  hb_face_t *face = hb_test_open_font_file_with_index ("fonts/Roboto-Regular.ac.ttf", 0);
+  hb_font_t *font = hb_font_create(face);
+
+  hb_buffer_t *buffer = hb_buffer_create();
+  hb_buffer_add_utf8(buffer, "aaa", -1, 0, -1);
+  hb_buffer_guess_segment_properties(buffer);
+  hb_shape(font, buffer, NULL, 0);
+
+  unsigned int num_glyphs = hb_buffer_get_length(buffer);
+
+  {
+    char test[32];
+    unsigned int start = 0;
+    GString *gstr = g_string_new ("");
+    while (start < num_glyphs)
+    {
+      unsigned int consumed;
+      start += hb_buffer_serialize(buffer, start, num_glyphs,
+                                  test, sizeof(test), &consumed,
+                                  font, HB_BUFFER_SERIALIZE_FORMAT_TEXT,
+                                  HB_BUFFER_SERIALIZE_FLAG_NO_ADVANCES);
+      if (consumed == 0) break;
+      g_string_append_len (gstr, test, consumed);
+    }
+    g_assert_cmpstr (gstr->str, ==, "[gid1=0|gid1=1@1114,0|gid1=2@2228,0]");
+    g_string_free (gstr, TRUE);
+  }
+
+  {
+    char test[64];
+    unsigned int start = 0;
+    GString *gstr = g_string_new ("");
+    while (start < num_glyphs)
+    {
+      unsigned int consumed;
+      start += hb_buffer_serialize(buffer, start, num_glyphs,
+                                  test, sizeof(test), &consumed,
+                                  font, HB_BUFFER_SERIALIZE_FORMAT_JSON,
+                                  HB_BUFFER_SERIALIZE_FLAG_NO_ADVANCES);
+      if (consumed == 0) break;
+      g_string_append_len (gstr, test, consumed);
+    }
+    g_assert_cmpstr (gstr->str, ==, "\
+[{\"g\":\"gid1\",\"cl\":0,\"dx\":0,\"dy\":0},\
+{\"g\":\"gid1\",\"cl\":1,\"dx\":1114,\"dy\":0},\
+{\"g\":\"gid1\",\"cl\":2,\"dx\":2228,\"dy\":0}]");
+    g_string_free (gstr, TRUE);
+  }
+
+  hb_font_destroy (font);
+  hb_face_destroy (face);
+  hb_buffer_destroy (buffer);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -970,7 +1094,9 @@ main (int argc, char **argv)
   hb_test_add (test_buffer_utf16_conversion);
   hb_test_add (test_buffer_utf32_conversion);
   hb_test_add (test_buffer_empty);
+  hb_test_add (test_buffer_create_similar);
   hb_test_add (test_buffer_serialize_deserialize);
+  hb_test_add (test_buffer_serialize_no_advances);
 
   return hb_test_run();
 }
