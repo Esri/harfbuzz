@@ -7,9 +7,9 @@ configuration {"*"}
 uuid "4040B363-7AA3-415D-9E58-E0E0A74C2740"
 
 defines {
-    "_CRT_SECURE_NO_WARNINGS", 
-    "HAVE_OT", 
-    "HAVE_UCDN", 
+    "_CRT_SECURE_NO_WARNINGS",
+    "HAVE_OT",
+    "HAVE_UCDN",
     "_LIB"
 }
 
@@ -76,10 +76,7 @@ files {
     "./src/OT/Var/VARC/VARC.cc"
 }
 
-if (_PLATFORM_ANDROID) then 
-    defines {
-        "HB_NO_MT"
-    } 
+if (_PLATFORM_ANDROID) then
 end
 
 if (_PLATFORM_COCOA) then
@@ -104,10 +101,7 @@ if (_PLATFORM_IOS) then
     }
 end
 
-if (_PLATFORM_LINUX) then 
-    defines {
-        "HB_NO_MT"
-    } 
+if (_PLATFORM_LINUX) then
 end
 
 if (_PLATFORM_MACOS) then
@@ -121,8 +115,8 @@ if (_PLATFORM_MACOS) then
     }
 end
 
-if (_PLATFORM_WINDOWS) then 
+if (_PLATFORM_WINDOWS) then
 end
 
-if (_PLATFORM_WINUWP) then 
+if (_PLATFORM_WINUWP) then
 end
