@@ -1,3 +1,4 @@
+/.wraplock
 /freetype-*
 /icu
 /libpng-*
@@ -8,3 +9,4 @@
 /cairo
 /ragel-6.10
 /kbts
+/graphite2-*

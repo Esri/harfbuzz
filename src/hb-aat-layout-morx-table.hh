@@ -487,7 +487,7 @@ struct LigatureSubtable
       if (entry.flags & LigatureEntryT::SetComponent)
       {
 	/* Never mark same index twice, in case DontAdvance was used... */
-	if (match_length && match_positions[(match_length - 1u) % ARRAY_LENGTH (match_positions)] == buffer->out_len)
+	if (unlikely (match_length && match_positions[(match_length - 1u) % ARRAY_LENGTH (match_positions)] == buffer->out_len))
 	  match_length--;
 
 	match_positions[match_length++ % ARRAY_LENGTH (match_positions)] = buffer->out_len;
@@ -640,7 +640,7 @@ struct NoncontextualSubtable
     for (unsigned int i = 0; i < count; i++)
     {
       /* This block copied from StateTableDriver::drive. Keep in sync. */
-      if (last_range)
+      if (unlikely (last_range))
       {
 	auto *range = last_range;
 	{
@@ -1156,7 +1156,6 @@ struct Chain
   void apply (hb_aat_apply_context_t *c,
 	      const hb_aat_layout_chain_accelerator_t *accel) const
   {
-    bool buffer_is_reversed = false;
     const ChainSubtable<Types> *subtable = &StructAfter<ChainSubtable<Types>> (featureZ.as_array (featureCount));
     unsigned int count = subtableCount;
     for (unsigned int i = 0; i < count; i++)
@@ -1220,11 +1219,8 @@ struct Chain
       if (!c->buffer->message (c->font, "start chainsubtable %u", c->lookup_index))
 	goto skip;
 
-      if (reverse != buffer_is_reversed)
-      {
-	c->buffer->reverse ();
-	buffer_is_reversed = reverse;
-      }
+      if (reverse != c->buffer_is_reversed)
+        c->reverse_buffer ();
 
       subtable->apply (c);
 
@@ -1236,8 +1232,8 @@ struct Chain
       subtable = &StructAfter<ChainSubtable<Types>> (*subtable);
       c->set_lookup_index (c->lookup_index + 1);
     }
-    if (buffer_is_reversed)
-      c->buffer->reverse ();
+    if (c->buffer_is_reversed)
+      c->reverse_buffer ();
   }
 
   unsigned int get_size () const { return length; }
